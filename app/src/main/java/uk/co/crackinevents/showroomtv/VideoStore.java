@@ -78,6 +78,7 @@ public class VideoStore {
                 f.delete();
             }
         }
+        if (served.add("s:" + url)) MainActivity.addLog("streaming " + shortName(url) + " while it saves");
         synchronized (busy) {
             if (busy.contains(url)) return null;
             busy.add(url);
