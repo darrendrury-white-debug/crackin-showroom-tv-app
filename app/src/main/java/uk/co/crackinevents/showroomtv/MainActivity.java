@@ -242,6 +242,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        s.setUserAgentString(s.getUserAgentString() + " CrackinTVApp/1.0.3");
         webVersion = s.getUserAgentString();
         web.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -415,7 +416,7 @@ public class MainActivity extends Activity {
         String ver = "";
         java.util.regex.Matcher mm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(webVersion);
         if (mm.find()) ver = mm.group(1);
-        StringBuilder lg = new StringBuilder("App 1.0.2   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
+        StringBuilder lg = new StringBuilder("App 1.0.3   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
         synchronized (LOG) {
             int from = Math.max(0, LOG.size() - 12);
             for (int i = from; i < LOG.size(); i++) lg.append(LOG.get(i)).append("\n");
