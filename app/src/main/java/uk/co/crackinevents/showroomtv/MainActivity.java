@@ -242,7 +242,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        s.setUserAgentString(s.getUserAgentString() + " CrackinTVApp/1.0.3");
+        s.setUserAgentString(s.getUserAgentString() + " CrackinTVApp/1.0.4" + (prefs.getBoolean("fx", false) ? "" : " nofx"));
         webVersion = s.getUserAgentString();
         web.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -321,7 +321,10 @@ public class MainActivity extends Activity {
         return v;
     }
 
+    Button fxBtn;
+
     void refreshButtons(Button rot, Button awake, Button boot) {
+        if (fxBtn != null) fxBtn.setText("Fade between videos:  " + (prefs.getBoolean("fx", false) ? "On" : "Off (faster)"));
         rot.setText("Screen rotation:  " + rotName(prefs.getInt("rot", 90)));
         awake.setText("Keep the screen awake:  " + (prefs.getBoolean("awake", true) ? "On" : "Off"));
         boot.setText("Start when the Firestick turns on:  " + (prefs.getBoolean("boot", true) ? "On" : "Off"));
@@ -368,7 +371,15 @@ public class MainActivity extends Activity {
         final Button boot = option("");
         col.addView(rot, mp(0, 6, 0, 18));
         col.addView(awake, mp(0, 0, 0, 18));
-        col.addView(boot, mp(0, 0, 0, 30));
+        fxBtn = option("");
+        col.addView(boot, mp(0, 0, 0, 18));
+        col.addView(fxBtn, mp(0, 0, 0, 30));
+        fxBtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                prefs.edit().putBoolean("fx", !prefs.getBoolean("fx", false)).apply();
+                refreshButtons(rot, awake, boot);
+            }
+        });
         refreshButtons(rot, awake, boot);
 
         rot.setOnClickListener(new View.OnClickListener() {
@@ -416,7 +427,7 @@ public class MainActivity extends Activity {
         String ver = "";
         java.util.regex.Matcher mm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(webVersion);
         if (mm.find()) ver = mm.group(1);
-        StringBuilder lg = new StringBuilder("App 1.0.3   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
+        StringBuilder lg = new StringBuilder("App 1.0.4   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
         synchronized (LOG) {
             int from = Math.max(0, LOG.size() - 12);
             for (int i = from; i < LOG.size(); i++) lg.append(LOG.get(i)).append("\n");
