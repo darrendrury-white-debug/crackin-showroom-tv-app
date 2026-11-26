@@ -19,7 +19,9 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -38,6 +40,8 @@ public class MainActivity extends Activity {
     static final int GOLD = 0xFFE3C9A0;
     static final int INK = 0xFF0B0B0B;
 
+    static final java.util.LinkedList<String> LOG = new java.util.LinkedList<String>();
+    static String webVersion = "";
     SharedPreferences prefs;
     TurnFrame root;
     WebView web;
@@ -238,6 +242,18 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        webVersion = s.getUserAgentString();
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage m) {
+                String t = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.UK).format(new java.util.Date());
+                synchronized (LOG) {
+                    LOG.add(t + "  " + m.messageLevel() + "  " + m.message() + "  (" + m.lineNumber() + ")");
+                    while (LOG.size() > 40) LOG.removeFirst();
+                }
+                return true;
+            }
+        });
         root.setContent(web);
         web.loadUrl(target);
         web.requestFocus();
@@ -396,6 +412,17 @@ public class MainActivity extends Activity {
         });
         col.addView(start, mp(0, 0, 0, 24));
         col.addView(label("Press Menu on the remote at any time to come back here", 16, 0xFF9A9A9A));
+        String ver = "";
+        java.util.regex.Matcher mm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(webVersion);
+        if (mm.find()) ver = mm.group(1);
+        StringBuilder lg = new StringBuilder("App 1.0.2   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
+        synchronized (LOG) {
+            int from = Math.max(0, LOG.size() - 12);
+            for (int i = from; i < LOG.size(); i++) lg.append(LOG.get(i)).append("\n");
+        }
+        TextView dbg = label(lg.toString(), 12, 0xFF6F6F6F);
+        dbg.setPadding(0, 30, 0, 0);
+        col.addView(dbg);
 
         root.setContent(sv);
         rot.requestFocus();
