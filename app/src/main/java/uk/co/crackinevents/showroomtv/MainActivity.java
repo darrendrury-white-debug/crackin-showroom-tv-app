@@ -83,6 +83,86 @@ public class MainActivity extends Activity {
         }
     }
 
+
+    /** Six slots for the pairing code, filled in with the remote: up and down change a character, left and right move. */
+    class CodeView extends LinearLayout {
+        static final String SET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final int[] v = new int[]{-1, -1, -1, -1, -1, -1};
+        final TextView[] cell = new TextView[6];
+        int idx = 0;
+
+        CodeView(Context c) {
+            super(c);
+            setOrientation(HORIZONTAL);
+            setFocusable(true);
+            setFocusableInTouchMode(true);
+            for (int i = 0; i < 6; i++) {
+                TextView t = new TextView(c);
+                t.setGravity(Gravity.CENTER);
+                t.setTextSize(34);
+                t.setTypeface(Typeface.DEFAULT_BOLD);
+                t.setTextColor(Color.WHITE);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, 120, 1f);
+                lp.setMargins(i == 0 ? 0 : 10, 0, 0, 0);
+                addView(t, lp);
+                cell[i] = t;
+            }
+            draw();
+        }
+
+        void draw() {
+            for (int i = 0; i < 6; i++) {
+                boolean on = hasFocus() && i == idx;
+                cell[i].setText(v[i] < 0 ? "" : String.valueOf(SET.charAt(v[i])));
+                cell[i].setBackground(box(on ? 0xFF2A2A2A : INK, on ? Color.WHITE : 0xFF3A3A3A, 14));
+            }
+        }
+
+        @Override
+        protected void onFocusChanged(boolean gained, int dir, android.graphics.Rect r) {
+            super.onFocusChanged(gained, dir, r);
+            draw();
+        }
+
+        String code() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 6; i++) { if (v[i] < 0) return ""; sb.append(SET.charAt(v[i])); }
+            return sb.toString();
+        }
+
+        @Override
+        public boolean onKeyDown(int k, KeyEvent e) {
+            switch (k) {
+                case KeyEvent.KEYCODE_DPAD_UP: v[idx] = v[idx] < 0 ? 10 : (v[idx] + 1) % 36; draw(); return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN: v[idx] = v[idx] <= 0 ? 35 : v[idx] - 1; draw(); return true;
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    if (idx == 0) { View n = focusSearch(View.FOCUS_UP); if (n != null) n.requestFocus(); }
+                    else { idx--; draw(); }
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    if (idx == 5) { View n = focusSearch(View.FOCUS_DOWN); if (n != null) n.requestFocus(); }
+                    else { idx++; draw(); }
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    if (v[idx] < 0) v[idx] = 10;
+                    if (idx == 5) { View n = focusSearch(View.FOCUS_DOWN); if (n != null) n.requestFocus(); }
+                    else { idx++; if (v[idx] < 0) v[idx] = 10; draw(); }
+                    return true;
+                case KeyEvent.KEYCODE_DEL:
+                    v[idx] = -1;
+                    if (idx > 0) idx--;
+                    draw();
+                    return true;
+                default:
+                    int ch = Character.toUpperCase(e.getUnicodeChar());
+                    int pos = ch > 0 ? SET.indexOf(ch) : -1;
+                    if (pos >= 0) { v[idx] = pos; if (idx < 5) idx++; draw(); return true; }
+            }
+            return super.onKeyDown(k, e);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -126,7 +206,9 @@ public class MainActivity extends Activity {
     // ---------- Player ----------
 
     @SuppressLint("SetJavaScriptEnabled")
-    void showPlayer() {
+    void showPlayer() { showPlayer(url()); }
+
+    void showPlayer(String target) {
         inSetup = false;
         destroyWeb();
         web = new WebView(this);
@@ -157,7 +239,7 @@ public class MainActivity extends Activity {
             }
         });
         root.setContent(web);
-        web.loadUrl(url());
+        web.loadUrl(target);
         web.requestFocus();
     }
 
@@ -295,6 +377,10 @@ public class MainActivity extends Activity {
             }
         });
 
+        col.addView(label("Pairing code (first time only, leave empty if this TV is already connected)", 18, 0xFF9A9A9A));
+        final CodeView code = new CodeView(this);
+        col.addView(code, mp(0, 6, 0, 30, 120));
+
         Button start = option("Start");
         start.setGravity(Gravity.CENTER);
         start.setTypeface(Typeface.DEFAULT_BOLD);
@@ -304,7 +390,8 @@ public class MainActivity extends Activity {
                 if (u.isEmpty()) u = DEFAULT_URL;
                 if (!u.matches("(?i)^https?://.*")) u = "https://" + u;
                 prefs.edit().putString("url", u).putBoolean("done", true).apply();
-                showPlayer();
+                String c = code.code();
+                showPlayer(c.isEmpty() ? u : u + (u.contains("?") ? "&" : "?") + "pair=" + c + "&rot=none");
             }
         });
         col.addView(start, mp(0, 0, 0, 24));
@@ -314,8 +401,10 @@ public class MainActivity extends Activity {
         rot.requestFocus();
     }
 
-    LinearLayout.LayoutParams mp(int l, int t, int r, int b) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 110);
+    LinearLayout.LayoutParams mp(int l, int t, int r, int b) { return mp(l, t, r, b, 110); }
+
+    LinearLayout.LayoutParams mp(int l, int t, int r, int b, int h) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, h);
         lp.setMargins(l, t, r, b);
         return lp;
     }
