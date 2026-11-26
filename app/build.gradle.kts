@@ -10,11 +10,23 @@ android {
         applicationId = "uk.co.crackinevents.showroomtv"
         minSdk = 22
         targetSdk = 33
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.0.5"
+    }
+
+    signingConfigs {
+        create("crackin") {
+            storeFile = file("crackin-showroom-tv.jks")
+            storePassword = "CrackinTV2026"
+            keyAlias = "crackin"
+            keyPassword = "CrackinTV2026"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("crackin")
+        }
         release {
             isMinifyEnabled = false
         }
