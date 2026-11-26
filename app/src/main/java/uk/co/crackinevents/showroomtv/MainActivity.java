@@ -225,6 +225,16 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(Color.BLACK);
         web.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView v, String u) {
+                addLog("page loaded " + u);
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView v, WebResourceRequest r, android.webkit.WebResourceResponse e) {
+                addLog("http " + e.getStatusCode() + " " + r.getUrl());
+            }
+
+            @Override
             public void onReceivedError(WebView v, int code, String desc, String failingUrl) {
                 if (failingUrl != null && failingUrl.equals(url())) waitAndRetry();
             }
@@ -242,22 +252,26 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        s.setUserAgentString(s.getUserAgentString() + " CrackinTVApp/1.0.5" + (prefs.getBoolean("fx", false) ? "" : " nofx"));
+        s.setUserAgentString(s.getUserAgentString() + " CrackinTVApp/1.0.6" + (prefs.getBoolean("fx", false) ? "" : " nofx"));
         webVersion = s.getUserAgentString();
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage m) {
-                String t = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.UK).format(new java.util.Date());
-                synchronized (LOG) {
-                    LOG.add(t + "  " + m.messageLevel() + "  " + m.message() + "  (" + m.lineNumber() + ")");
-                    while (LOG.size() > 40) LOG.removeFirst();
-                }
+                addLog(m.message() + (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR ? "  [error line " + m.lineNumber() + "]" : ""));
                 return true;
             }
         });
         root.setContent(web);
         web.loadUrl(target);
         web.requestFocus();
+    }
+
+    static void addLog(String m) {
+        String t = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.UK).format(new java.util.Date());
+        synchronized (LOG) {
+            LOG.add(t + "  " + m);
+            while (LOG.size() > 40) LOG.removeFirst();
+        }
     }
 
     void waitAndRetry() {
@@ -427,9 +441,9 @@ public class MainActivity extends Activity {
         String ver = "";
         java.util.regex.Matcher mm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(webVersion);
         if (mm.find()) ver = mm.group(1);
-        StringBuilder lg = new StringBuilder("App 1.0.5   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
+        StringBuilder lg = new StringBuilder("App 1.0.6   Web engine " + (ver.isEmpty() ? "unknown" : ver) + "\n");
         synchronized (LOG) {
-            int from = Math.max(0, LOG.size() - 12);
+            int from = Math.max(0, LOG.size() - 16);
             for (int i = from; i < LOG.size(); i++) lg.append(LOG.get(i)).append("\n");
         }
         TextView dbg = label(lg.toString(), 12, 0xFF6F6F6F);
